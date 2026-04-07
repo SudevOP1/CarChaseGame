@@ -1,0 +1,712 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Endless Police Chase - Stone Blast Edition</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            pointer-events: none;
+            z-index: 10;
+            font-weight: bold;
+            letter-spacing: 1px;
+            border-left: 4px solid #ff5500;
+        }
+
+        #score-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            pointer-events: none;
+            z-index: 10;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        #health-bar {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            width: 300px;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #health-fill {
+            width: 100%;
+            height: 100%;
+            background: #ff3333;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 8px #ff0000;
+        }
+
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.92);
+            color: white;
+            padding: 30px 50px;
+            text-align: center;
+            border-radius: 20px;
+            font-size: 32px;
+            font-weight: bold;
+            backdrop-filter: blur(8px);
+            border: 2px solid #ff5500;
+            pointer-events: none;
+            z-index: 20;
+            display: none;
+            font-family: monospace;
+            white-space: nowrap;
+        }
+
+        #restart-btn {
+            margin-top: 20px;
+            background: #ff5500;
+            border: none;
+            padding: 10px 24px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 40px;
+            cursor: pointer;
+            pointer-events: auto;
+            color: white;
+            font-family: monospace;
+            transition: 0.2s;
+        }
+
+        #restart-btn:hover {
+            background: #ff7700;
+            transform: scale(1.05);
+        }
+
+        .instruction {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: monospace;
+            pointer-events: none;
+        }
+
+        .warning {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            color: #ffaa66;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-family: monospace;
+            pointer-events: none;
+        }
+
+        @media (max-width: 600px) {
+            #health-bar {
+                width: 200px;
+            }
+
+            #score-container {
+                font-size: 14px;
+            }
+
+            #info {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="info">
+        🚔 POLICE CHASE | STONES DESTROY COPS 💥
+    </div>
+    <div id="score-container">
+        SCORE: <span id="score-value">0</span><br>
+        MULTIPLIER: <span id="multiplier-value">1.0</span>x
+    </div>
+    <div id="health-bar">
+        <div id="health-fill" style="width: 100%"></div>
+    </div>
+    <div id="game-over">
+        💥 GAME OVER 💥<br>
+        <span id="final-score" style="font-size: 24px;">0</span>
+        <br><button id="restart-btn">RESTART CHASE</button>
+    </div>
+
+    <!-- Import Three.js core and add-ons -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // --- setup scene, camera, renderers ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a2f2a);
+        scene.fog = new THREE.FogExp2(0x0a2f2a, 0.008);
+
+        // Camera: behind the car, tilted slightly down towards the car (classic chase angle)
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // CSS2DRenderer - minimal usage (no emojis)
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xfff5e0, 1.2);
+        dirLight.position.set(10, 20, 5);
+        dirLight.castShadow = true;
+        dirLight.receiveShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 40;
+        dirLight.shadow.camera.left = -15;
+        dirLight.shadow.camera.right = 15;
+        dirLight.shadow.camera.top = 15;
+        dirLight.shadow.camera.bottom = -15;
+        scene.add(dirLight);
+        const fillLight = new THREE.PointLight(0x5577aa, 0.4);
+        fillLight.position.set(0, -2, 0);
+        scene.add(fillLight);
+        const rimLight = new THREE.PointLight(0xffaa66, 0.5);
+        rimLight.position.set(-5, 5, -8);
+        scene.add(rimLight);
+
+        // Ground: huge green plane
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x4caf50, roughness: 0.8, metalness: 0.1 });
+        const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(350, 350), groundMat);
+        groundPlane.rotation.x = -Math.PI / 2;
+        groundPlane.position.y = -0.2;
+        groundPlane.receiveShadow = true;
+        scene.add(groundPlane);
+
+        const gridHelper = new THREE.GridHelper(350, 50, 0x88ff88, 0x336633);
+        gridHelper.position.y = -0.15;
+        gridHelper.material.transparent = true;
+        gridHelper.material.opacity = 0.35;
+        scene.add(gridHelper);
+
+        // --- STONES: Bigger, less frequent, and DESTROY POLICE on collision ---
+        const stoneGeo = new THREE.DodecahedronGeometry(0.95);
+        const stoneMat = new THREE.MeshStandardMaterial({ color: 0x6b5e4a, roughness: 0.85, metalness: 0.05 });
+        const stonePositions = []; // store stone meshes for collision
+        // Generate fewer stones (160 total)
+        for (let i = 0; i < 80; i++) {
+            const stone = new THREE.Mesh(stoneGeo, stoneMat);
+            let x, z;
+            if (Math.random() > 0.3) {
+                const radius = 25 + Math.random() * 130;
+                const angle = Math.random() * Math.PI * 2;
+                x = Math.cos(angle) * radius;
+                z = Math.sin(angle) * radius;
+            } else {
+                x = (Math.random() - 0.5) * 80;
+                z = (Math.random() - 0.5) * 80;
+            }
+            stone.position.set(x, -0.1, z);
+            const scaleVar = 1.4 + Math.random() * 0.7;
+            stone.scale.setScalar(scaleVar);
+            stone.castShadow = true;
+            stone.receiveShadow = false;
+            scene.add(stone);
+            stonePositions.push(stone);
+        }
+        // Giant boulders
+        const giantGeo = new THREE.DodecahedronGeometry(1.2);
+        for (let i = 0; i < 30; i++) {
+            const megaStone = new THREE.Mesh(giantGeo, stoneMat);
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 40 + Math.random() * 110;
+            megaStone.position.set(Math.cos(angle) * radius, -0.15, Math.sin(angle) * radius);
+            megaStone.scale.setScalar(1.7 + Math.random() * 0.8);
+            megaStone.castShadow = true;
+            scene.add(megaStone);
+            stonePositions.push(megaStone);
+        }
+
+        // --- Player Car ---
+        const carGroup = new THREE.Group();
+        const bodyGeo = new THREE.BoxGeometry(0.9, 0.3, 1.6);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff3300, metalness: 0.7, roughness: 0.2 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.castShadow = true;
+        body.receiveShadow = true;
+        body.position.y = 0.15;
+        carGroup.add(body);
+
+        const roofGeo = new THREE.BoxGeometry(0.7, 0.25, 0.9);
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.2 });
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.y = 0.35;
+        roof.castShadow = true;
+        carGroup.add(roof);
+
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.5 });
+        const wheelGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16);
+        const positions = [[-0.5, 0.05, -0.7], [0.5, 0.05, -0.7], [-0.5, 0.05, 0.7], [0.5, 0.05, 0.7]];
+        positions.forEach(pos => {
+            const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+            wheel.rotation.z = Math.PI / 2;
+            wheel.position.set(pos[0], pos[1], pos[2]);
+            wheel.castShadow = true;
+            carGroup.add(wheel);
+        });
+
+        const lightBar = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.3), new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0x442200 }));
+        lightBar.position.set(0, 0.48, -0.3);
+        carGroup.add(lightBar);
+
+        scene.add(carGroup);
+
+        // Player data
+        const player = {
+            group: carGroup,
+            angle: 0,
+            velocity: 14.0,
+            steer: 0,
+            health: 100,
+            invincibleFrames: 0,
+            score: 0,
+            multiplier: 1.0,
+            multiplierTimer: 0
+        };
+
+        // --- Police Car Class (without emoji labels) ---
+        class PoliceCar {
+            constructor(x, z, angle) {
+                this.group = new THREE.Group();
+                const pBody = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.3, 1.5), new THREE.MeshStandardMaterial({ color: 0x2266cc, metalness: 0.5 }));
+                pBody.castShadow = true;
+                pBody.position.y = 0.15;
+                this.group.add(pBody);
+                const pRoof = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.22, 0.85), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+                pRoof.position.y = 0.35;
+                this.group.add(pRoof);
+                const lightBeacon = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x330000 }));
+                lightBeacon.position.set(0, 0.5, -0.4);
+                this.group.add(lightBeacon);
+                const wheelGeoPol = new THREE.CylinderGeometry(0.18, 0.18, 0.1, 12);
+                const wheelMatPol = new THREE.MeshStandardMaterial({ color: 0x222222 });
+                [[-0.45, 0.05, -0.65], [0.45, 0.05, -0.65], [-0.45, 0.05, 0.65], [0.45, 0.05, 0.65]].forEach(pos => {
+                    const wheel = new THREE.Mesh(wheelGeoPol, wheelMatPol);
+                    wheel.rotation.z = Math.PI / 2;
+                    wheel.position.set(pos[0], pos[1], pos[2]);
+                    this.group.add(wheel);
+                });
+                this.group.position.set(x, 0, z);
+                this.group.rotation.y = angle;
+                this.angle = angle;
+                this.speed = 13.0 + Math.random() * 2.5;
+                this.active = true;
+                scene.add(this.group);
+            }
+
+            update(deltaTime, playerPos) {
+                if (!this.active) return;
+                const dx = playerPos.x - this.group.position.x;
+                const dz = playerPos.z - this.group.position.z;
+                const targetAngle = Math.atan2(dx, dz);
+                let angleDiff = targetAngle - this.angle;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                this.angle += angleDiff * deltaTime * 3.4;
+                this.group.rotation.y = this.angle;
+                const moveX = Math.sin(this.angle) * this.speed * deltaTime;
+                const moveZ = Math.cos(this.angle) * this.speed * deltaTime;
+                this.group.position.x += moveX;
+                this.group.position.z += moveZ;
+                // world wrap
+                if (this.group.position.x > 160) this.group.position.x = -160;
+                if (this.group.position.x < -160) this.group.position.x = 160;
+                if (this.group.position.z > 160) this.group.position.z = -160;
+                if (this.group.position.z < -160) this.group.position.z = 160;
+            }
+
+            explode() {
+                if (!this.active) return;
+                this.active = false;
+                scene.remove(this.group);
+                for (let i = 0; i < 20; i++) {
+                    const particleGeo = new THREE.SphereGeometry(0.12, 6, 6);
+                    const particleMat = new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0x552200 });
+                    const particle = new THREE.Mesh(particleGeo, particleMat);
+                    particle.position.copy(this.group.position);
+                    particle.userData = { life: 0.9, velX: (Math.random() - 0.5) * 7, velZ: (Math.random() - 0.5) * 7, velY: Math.random() * 6 };
+                    scene.add(particle);
+                    setTimeout(() => scene.remove(particle), 900);
+                    if (!window._tempParticles) window._tempParticles = [];
+                    window._tempParticles.push(particle);
+                }
+                // Bonus: add a flash sphere
+                const flash = new THREE.Mesh(new THREE.SphereGeometry(0.6, 6, 6), new THREE.MeshStandardMaterial({ color: 0xff8800, emissive: 0xff4400, transparent: true, opacity: 0.8 }));
+                flash.position.copy(this.group.position);
+                scene.add(flash);
+                setTimeout(() => scene.remove(flash), 200);
+            }
+        }
+
+        let policeCars = [];
+        let spawnTimer = 0;
+        let gameActive = true;
+
+        // drift smoke effect
+        function addDriftSmoke(pos) {
+            if (!gameActive) return;
+            const smokeGeo = new THREE.SphereGeometry(0.12, 6, 6);
+            const smokeMat = new THREE.MeshStandardMaterial({ color: 0xbbbbbb, emissive: 0x333333, transparent: true, opacity: 0.65 });
+            const puff = new THREE.Mesh(smokeGeo, smokeMat);
+            puff.position.copy(pos);
+            scene.add(puff);
+            setTimeout(() => scene.remove(puff), 350);
+        }
+
+        // --- Collision: Stone = instant game over for player, BUT police cars EXPLODE on stone impact ---
+        function handleCollisions(deltaTime) {
+            if (!gameActive) return;
+            if (player.invincibleFrames > 0) {
+                player.invincibleFrames -= deltaTime;
+            }
+
+            // POLICE collision with player (damage)
+            for (let i = 0; i < policeCars.length; i++) {
+                const pc = policeCars[i];
+                if (!pc.active) continue;
+                const dx = pc.group.position.x - player.group.position.x;
+                const dz = pc.group.position.z - player.group.position.z;
+                const dist = Math.hypot(dx, dz);
+                if (dist < 1.1) {
+                    if (player.invincibleFrames <= 0) {
+                        player.health -= 18;
+                        player.invincibleFrames = 0.7;
+                        updateHealthUI();
+                        const angleToPolice = Math.atan2(dx, dz);
+                        player.group.position.x -= Math.sin(angleToPolice) * 0.9;
+                        player.group.position.z -= Math.cos(angleToPolice) * 0.9;
+                        if (player.health <= 0) {
+                            gameOver();
+                        }
+                        document.body.style.transform = 'translateX(3px)';
+                        setTimeout(() => document.body.style.transform = '', 100);
+                    }
+                }
+            }
+
+            // POLICE vs STONES: police cars explode on stone collision
+            for (let i = 0; i < policeCars.length; i++) {
+                const pc = policeCars[i];
+                if (!pc.active) continue;
+                for (let stone of stonePositions) {
+                    if (!stone.parent) continue;
+                    const dx = pc.group.position.x - stone.position.x;
+                    const dz = pc.group.position.z - stone.position.z;
+                    const stoneScale = stone.scale.x;
+                    const stoneRadius = stoneScale * 0.85;
+                    const policeRadius = 0.7;
+                    const threshold = stoneRadius + policeRadius;
+                    if (Math.hypot(dx, dz) < threshold) {
+                        // Police car hits a stone -> EXPLODE!
+                        pc.explode();
+                        // Remove this police car from array
+                        policeCars.splice(i, 1);
+                        i--; // adjust index after removal
+                        break; // break stone loop, police is gone
+                    }
+                }
+            }
+
+            // PLAYER vs STONES: instant death
+            for (let stone of stonePositions) {
+                if (!stone.parent) continue;
+                const dx = stone.position.x - player.group.position.x;
+                const dz = stone.position.z - player.group.position.z;
+                const stoneScale = stone.scale.x;
+                const stoneRadius = stoneScale * 0.85;
+                const carRadius = 0.75;
+                const threshold = stoneRadius + carRadius;
+                if (Math.hypot(dx, dz) < threshold) {
+                    gameOver();
+                    return;
+                }
+            }
+        }
+
+        // UI updates
+        function updateHealthUI() {
+            const percent = Math.max(0, (player.health / 100) * 100);
+            document.getElementById('health-fill').style.width = `${percent}%`;
+            if (player.health < 30) document.getElementById('health-fill').style.backgroundColor = '#ff8888';
+            else document.getElementById('health-fill').style.backgroundColor = '#ff3333';
+        }
+
+        function updateScoreUI() {
+            document.getElementById('score-value').innerText = Math.floor(player.score);
+            document.getElementById('multiplier-value').innerText = player.multiplier.toFixed(1);
+        }
+
+        function gameOver() {
+            if (!gameActive) return;
+            gameActive = false;
+            document.getElementById('final-score').innerText = Math.floor(player.score);
+            document.getElementById('game-over').style.display = 'block';
+        }
+
+        function restartGame() {
+            gameActive = true;
+            player.health = 100;
+            player.score = 0;
+            player.multiplier = 1.0;
+            player.multiplierTimer = 0;
+            player.invincibleFrames = 0;
+            player.group.position.set(0, 0, 0);
+            player.angle = 0;
+            player.group.rotation.y = 0;
+            player.steer = 0;
+            // clear police
+            policeCars.forEach(car => {
+                scene.remove(car.group);
+            });
+            policeCars = [];
+            spawnTimer = 0;
+            updateHealthUI();
+            updateScoreUI();
+            document.getElementById('game-over').style.display = 'none';
+            // initial police spawn (3)
+            for (let i = 0; i < 3; i++) {
+                const angleRad = Math.random() * Math.PI * 2;
+                const radius = 8 + Math.random() * 6;
+                const x = Math.cos(angleRad) * radius;
+                const z = Math.sin(angleRad) * radius;
+                policeCars.push(new PoliceCar(x, z, Math.atan2(-x, -z)));
+            }
+        }
+
+        // Initial spawn
+        for (let i = 0; i < 3; i++) {
+            const angleRad = Math.random() * Math.PI * 2;
+            const radius = 7 + Math.random() * 6;
+            const x = Math.cos(angleRad) * radius;
+            const z = Math.sin(angleRad) * radius;
+            policeCars.push(new PoliceCar(x, z, Math.atan2(-x, -z)));
+        }
+
+        // Keyboard controls
+        const keyState = { ArrowLeft: false, ArrowRight: false };
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') keyState.ArrowLeft = true;
+            if (e.key === 'ArrowRight') keyState.ArrowRight = true;
+            if (e.key === ' ' && !gameActive) {
+                e.preventDefault();
+                restartGame();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') keyState.ArrowLeft = false;
+            if (e.key === 'ArrowRight') keyState.ArrowRight = false;
+        });
+
+        let lastDriftState = false;
+
+        function updatePlayerMovement(deltaTime) {
+            if (!gameActive) return;
+            let steerInput = 0;
+            if (keyState.ArrowLeft) steerInput = 1;
+            if (keyState.ArrowRight) steerInput = -1;
+            player.steer += (steerInput - player.steer) * deltaTime * 12;
+            const turnSpeed = 3.8;
+            player.angle += player.steer * turnSpeed * deltaTime;
+
+            const isDrifting = Math.abs(player.steer) > 0.55;
+            if (isDrifting && !lastDriftState) {
+                player.multiplier = Math.min(3.5, player.multiplier + 0.18);
+                player.multiplierTimer = 2.5;
+            }
+            if (player.multiplierTimer > 0) {
+                player.multiplierTimer -= deltaTime;
+                if (player.multiplierTimer <= 0) player.multiplier = Math.max(1.0, player.multiplier - 0.05);
+            }
+            if (!isDrifting && player.multiplierTimer <= 0) player.multiplier = Math.max(1.0, player.multiplier - 0.35 * deltaTime);
+
+            if (isDrifting && Math.random() < 0.28) {
+                const offsetX = Math.sin(player.angle) * -0.8;
+                const offsetZ = Math.cos(player.angle) * -0.8;
+                addDriftSmoke(new THREE.Vector3(player.group.position.x + offsetX, 0.1, player.group.position.z + offsetZ));
+            }
+            lastDriftState = isDrifting;
+
+            const moveX = Math.sin(player.angle) * player.velocity * deltaTime;
+            const moveZ = Math.cos(player.angle) * player.velocity * deltaTime;
+            player.group.position.x += moveX;
+            player.group.position.z += moveZ;
+            // world wrap
+            if (player.group.position.x > 160) player.group.position.x = -160;
+            if (player.group.position.x < -160) player.group.position.x = 160;
+            if (player.group.position.z > 160) player.group.position.z = -160;
+            if (player.group.position.z < -160) player.group.position.z = 160;
+            player.group.rotation.y = player.angle;
+
+            player.score += deltaTime * 9 * player.multiplier;
+            updateScoreUI();
+        }
+
+        function updateGameSystems(deltaTime) {
+            if (!gameActive) return;
+            spawnTimer += deltaTime;
+            let spawnDelay = Math.max(1.1, 2.4 - Math.floor(Date.now() / 1000 / 22) * 0.12);
+            if (spawnTimer > spawnDelay) {
+                spawnTimer = 0;
+                const angleRad = Math.random() * Math.PI * 2;
+                const radius = 14 + Math.random() * 9;
+                const x = player.group.position.x + Math.cos(angleRad) * radius;
+                const z = player.group.position.z + Math.sin(angleRad) * radius;
+                policeCars.push(new PoliceCar(x, z, Math.atan2(player.group.position.x - x, player.group.position.z - z)));
+            }
+            let maxPolice = Math.min(20, 3 + Math.floor((Date.now() / 1000) / 16));
+            if (policeCars.length > maxPolice) {
+                let toRemove = policeCars.splice(maxPolice, policeCars.length - maxPolice);
+                toRemove.forEach(c => scene.remove(c.group));
+            }
+            for (let i = 0; i < policeCars.length; i++) {
+                policeCars[i].update(deltaTime, player.group.position);
+                // police vs police collision (explosions)
+                for (let j = i + 1; j < policeCars.length; j++) {
+                    if (policeCars[i].active && policeCars[j].active &&
+                        policeCars[i].group.position.distanceTo(policeCars[j].group.position) < 1.0) {
+                        policeCars[i].explode();
+                        policeCars[j].explode();
+                        policeCars.splice(j, 1);
+                        policeCars.splice(i, 1);
+                        i--; break;
+                    }
+                }
+            }
+        }
+
+        function updateParticles(deltaTime) {
+            if (window._tempParticles) {
+                for (let i = 0; i < window._tempParticles.length; i++) {
+                    const p = window._tempParticles[i];
+                    if (p && p.parent) {
+                        p.position.x += p.userData.velX * deltaTime;
+                        p.position.z += p.userData.velZ * deltaTime;
+                        p.position.y += p.userData.velY * deltaTime;
+                        p.userData.life -= deltaTime;
+                        if (p.userData.life <= 0) {
+                            scene.remove(p);
+                            window._tempParticles.splice(i, 1);
+                            i--;
+                        }
+                    } else if (p) { window._tempParticles.splice(i, 1); i--; }
+                }
+            }
+        }
+
+        // --- Camera: behind the car, tilted slightly downwards ---
+        function updateCamera() {
+            const targetPos = player.group.position;
+            const distanceBehind = 5.2;
+            const heightOffset = 3.2;
+            const backX = targetPos.x - Math.sin(player.angle) * distanceBehind;
+            const backZ = targetPos.z - Math.cos(player.angle) * distanceBehind;
+            camera.position.x += (backX - camera.position.x) * 0.1;
+            camera.position.z += (backZ - camera.position.z) * 0.1;
+            camera.position.y += ((targetPos.y + heightOffset) - camera.position.y) * 0.1;
+            const lookAtPoint = {
+                x: targetPos.x + Math.sin(player.angle) * 1.2,
+                y: targetPos.y + 0.6,
+                z: targetPos.z + Math.cos(player.angle) * 1.2
+            };
+            camera.lookAt(lookAtPoint.x, lookAtPoint.y, lookAtPoint.z);
+        }
+
+        // Animation loop
+        let lastTime = performance.now() / 1000;
+        function animate() {
+            const now = performance.now() / 1000;
+            let dt = Math.min(0.033, now - lastTime);
+            if (dt <= 0) { lastTime = now; requestAnimationFrame(animate); return; }
+            lastTime = now;
+
+            if (gameActive) {
+                updatePlayerMovement(dt);
+                handleCollisions(dt);
+                updateGameSystems(dt);
+                updateParticles(dt);
+            }
+            updateCamera();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+
+        lastTime = performance.now() / 1000;
+        animate();
+
+        document.getElementById('restart-btn').addEventListener('click', () => restartGame());
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        updateHealthUI();
+    </script>
+</body>
+
+</html>
