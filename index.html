@@ -8,13 +8,112 @@
   </head>
   <body class="bg-[#1a1a25] overflow-hidden font-sans">
     <canvas id="gameCanvas" class="block"></canvas>
-    <div
-      id="ui"
-      class="fixed top-5 left-5 text-white text-lg drop-shadow-[0_0_10px_rgba(0,255,255,0.5)] pointer-events-none z-10"
-    >
-      <div id="cops-display" class="mb-2">Cops: 4</div>
-      <div id="controls-hint" class="text-sm opacity-70 mt-4">WASD / Arrows to drive | Enter to start</div>
+    <div id="ui" class="fixed top-0 inset-x-0 p-5 flex justify-between items-start text-white z-[150] pointer-events-none">
+      <!-- Top Left: Settings -->
+      <div class="flex flex-col gap-4 items-start">
+        <button
+          id="settings-btn"
+          class="p-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all pointer-events-auto backdrop-blur-sm shadow-xl"
+        >
+          <i data-lucide="settings" class="w-6 h-6"></i>
+        </button>
+        <div
+          id="cops-display"
+          class="hidden text-2xl font-black italic tracking-tighter bg-gradient-to-r from-[#00ffff] to-[#0088ff] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(0,255,255,0.3)]"
+        >
+          SCORE: 0
+        </div>
+      </div>
+
+      <!-- Top Right: Controls Hint -->
+      <div id="controls-hint" class="flex flex-col justify-center items-center gap-2 opacity-80 scale-90 origin-top-right">
+        <div class="flex flex-col items-center gap-1">
+          <div
+            class="w-10 h-10 border-2 border-b-[4px] border-white/40 rounded-lg flex items-center justify-center text-sm font-bold bg-white/5 backdrop-blur-sm"
+          >
+            W
+          </div>
+          <div class="flex gap-1">
+            <div
+              class="w-10 h-10 border-2 border-b-[4px] border-white/40 rounded-lg flex items-center justify-center text-sm font-bold bg-white/5 backdrop-blur-sm"
+            >
+              A
+            </div>
+            <div
+              class="w-10 h-10 border-2 border-b-[4px] border-white/40 rounded-lg flex items-center justify-center text-sm font-bold bg-white/5 backdrop-blur-sm"
+            >
+              S
+            </div>
+            <div
+              class="w-10 h-10 border-2 border-b-[4px] border-white/40 rounded-lg flex items-center justify-center text-sm font-bold bg-white/5 backdrop-blur-sm"
+            >
+              D
+            </div>
+          </div>
+
+        </div>
+        <div class="text-[14px] uppercase text-center font-bold opacity-50">Controls</div>
+      </div>
     </div>
+
+    <!-- Settings Overlay -->
+    <div
+      id="settings-overlay"
+      class="fixed inset-0 bg-[rgba(10,10,15,0.98)] hidden flex-col gap-8 justify-center items-center text-white z-[200]"
+    >
+      <h2 class="text-4xl font-bold bg-gradient-to-r from-[#00ffff] to-[#ff00ff] bg-clip-text text-transparent">Settings</h2>
+
+      <div class="flex flex-col gap-6 w-80">
+        <div class="flex flex-col gap-2">
+          <label class="text-sm opacity-70 uppercase tracking-widest">Username</label>
+          <input
+            id="settings-username"
+            type="text"
+            class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-[#00ffff] outline-none transition-all"
+          />
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-sm opacity-70 uppercase tracking-widest">Music Volume</label>
+          <div class="flex items-center gap-4">
+            <input
+              id="music-volume"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              class="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00ffff]"
+            />
+            <span id="music-volume-text" class="w-10 text-right text-sm font-mono opacity-70">10%</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-sm opacity-70 uppercase tracking-widest">Sound Effects</label>
+          <div class="flex items-center gap-4">
+            <input
+              id="sound-volume"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              class="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#ff00ff]"
+            />
+            <span id="sound-volume-text" class="w-10 text-right text-sm font-mono opacity-70">10%</span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        id="settings-close-btn"
+        class="mt-4 pl-7 pr-8 py-3 bg-white/10 border border-white/20 rounded-full hover:bg-white/20 transition-all font-semibold flex items-center gap-2"
+      >
+        <i data-lucide="x" class="w-5 h-5"></i>
+        Close
+      </button>
+
+    </div>
+
     <div
       id="overlay"
       class="fixed inset-0 bg-[rgba(10,10,15,0.95)] flex flex-col gap-10 justify-center items-center text-white z-[100]"

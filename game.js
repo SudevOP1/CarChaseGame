@@ -8,6 +8,31 @@ const homeBtn = document.getElementById("home-btn");
 const usernameInput = document.getElementById("username-input");
 const copsDisplay = document.getElementById("cops-display");
 
+// Settings UI
+const settingsBtn = document.getElementById("settings-btn");
+const settingsOverlay = document.getElementById("settings-overlay");
+const settingsUsername = document.getElementById("settings-username");
+const musicVolumeInput = document.getElementById("music-volume");
+const soundVolumeInput = document.getElementById("sound-volume");
+const musicVolumeText = document.getElementById("music-volume-text");
+const soundVolumeText = document.getElementById("sound-volume-text");
+const settingsCloseBtn = document.getElementById("settings-close-btn");
+
+
+
+// Audio setup
+const bgMusic = new Audio("assets/bg_music.mp3");
+bgMusic.loop = true;
+bgMusic.volume = parseFloat(localStorage.getItem("getawayMusicVolume") || 0.1);
+
+const crashSound = new Audio("assets/crash.mp3");
+crashSound.volume = parseFloat(localStorage.getItem("getawaySoundVolume") || 0.1);
+
+
+
+
+
+
 // Resize canvas to fill screen
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -15,6 +40,30 @@ function resizeCanvas() {
 }
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
+
+// Global music starter (for browser autoplay policies)
+function startMusic() {
+  bgMusic.play().catch(e => {
+    // Fail silently if still blocked
+  });
+  // Remove listeners once music starts
+  if (!bgMusic.paused) {
+    window.removeEventListener("click", startMusic);
+    window.removeEventListener("keydown", startMusic);
+    window.removeEventListener("mousedown", startMusic);
+    window.removeEventListener("touchstart", startMusic);
+  }
+}
+
+// Try to play immediately (might work if user has interacted with the domain before)
+startMusic();
+
+window.addEventListener("click", startMusic);
+window.addEventListener("keydown", startMusic);
+window.addEventListener("mousedown", startMusic);
+window.addEventListener("touchstart", startMusic);
+
+
 
 // Game state
 let gameState = "menu";
@@ -30,10 +79,63 @@ function generateRandomUsername() {
   return `${adj}${noun}`;
 }
 
-// Pre-fill username
+// Pre-fill username and add listener for audio start
 if (usernameInput) {
-  usernameInput.value = localStorage.getItem("getawayUsername") || generateRandomUsername();
+  const savedUsername = localStorage.getItem("getawayUsername") || generateRandomUsername();
+  usernameInput.value = savedUsername;
+  settingsUsername.value = savedUsername;
+
+  usernameInput.addEventListener("focus", startMusic);
+  usernameInput.addEventListener("input", (e) => {
+    startMusic();
+    settingsUsername.value = e.target.value;
+    localStorage.setItem("getawayUsername", e.target.value);
+  });
 }
+
+// Settings logic
+if (settingsUsername) {
+  settingsUsername.addEventListener("input", (e) => {
+    usernameInput.value = e.target.value;
+    localStorage.setItem("getawayUsername", e.target.value);
+  });
+}
+
+if (musicVolumeInput) {
+  musicVolumeInput.value = bgMusic.volume;
+  musicVolumeText.textContent = `${Math.round(bgMusic.volume * 100)}%`;
+  musicVolumeInput.addEventListener("input", (e) => {
+    bgMusic.volume = e.target.value;
+    musicVolumeText.textContent = `${Math.round(e.target.value * 100)}%`;
+    localStorage.setItem("getawayMusicVolume", e.target.value);
+  });
+}
+
+
+
+if (soundVolumeInput) {
+  soundVolumeInput.value = crashSound.volume;
+  soundVolumeText.textContent = `${Math.round(crashSound.volume * 100)}%`;
+  soundVolumeInput.addEventListener("input", (e) => {
+    crashSound.volume = e.target.value;
+    soundVolumeText.textContent = `${Math.round(e.target.value * 100)}%`;
+    localStorage.setItem("getawaySoundVolume", e.target.value);
+  });
+}
+
+
+
+settingsBtn.addEventListener("click", () => {
+  settingsOverlay.classList.remove("hidden");
+  settingsOverlay.classList.add("flex");
+});
+
+settingsCloseBtn.addEventListener("click", () => {
+  settingsOverlay.classList.remove("flex");
+  settingsOverlay.classList.add("hidden");
+});
+
+
 let player,
   cops = [],
   particles = [],
@@ -462,10 +564,15 @@ class Particle {
 }
 
 function createExplosion(x, y, color) {
+  // Play crash sound
+  crashSound.currentTime = 0;
+  crashSound.play();
+
   for (let i = 0; i < 30; i++) {
     particles.push(new Particle(x, y, color));
   }
 }
+
 
 function createDebris(x, y) {
   for (let i = 0; i < 15; i++) {
@@ -598,8 +705,16 @@ function initGame() {
 
   gameState = "playing";
   overlay.classList.add("hidden");
+  settingsBtn.classList.add("hidden");
+  copsDisplay.classList.remove("hidden");
   updateUI();
+
+
+  startMusic();
 }
+
+
+
 
 // Update UI
 function updateUI() {
@@ -693,7 +808,13 @@ function showGameOver(won) {
     overlaySubtitle.textContent = `Score: ${score} | High Score: ${highScore}`;
   }
   startBtn.textContent = "Play Again";
+  settingsBtn.classList.remove("hidden");
+  copsDisplay.classList.add("hidden");
 }
+
+
+
+
 
 // Start button
 startBtn.addEventListener("click", () => {
@@ -709,7 +830,11 @@ homeBtn.addEventListener("click", () => {
   if (usernameInput) usernameInput.classList.remove("hidden");
   if (homeBtn) homeBtn.classList.add("hidden");
   gameState = "menu";
+  settingsBtn.classList.remove("hidden");
+  copsDisplay.classList.add("hidden");
 });
+
+
 
 // Restart on Enter
 window.addEventListener("keydown", (e) => {
