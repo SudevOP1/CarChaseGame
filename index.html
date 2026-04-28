@@ -15,20 +15,25 @@
       <div id="cops-display" class="mb-2">Cops: 4</div>
       <div id="controls-hint" class="text-sm opacity-70 mt-4">WASD / Arrows to drive | Enter to start</div>
     </div>
-    <div id="overlay" class="fixed inset-0 bg-[rgba(10,10,15,0.95)] flex flex-col justify-center items-center text-white z-[100]">
+    <div
+      id="overlay"
+      class="fixed inset-0 bg-[rgba(10,10,15,0.95)] flex flex-col gap-10 justify-center items-center text-white z-[100]"
+    >
       <h1
         id="overlay-title"
-        class="text-6xl mb-2 bg-gradient-to-r from-[#00ffff] to-[#ff00ff] bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,255,255,0.3)] font-bold"
+        class="text-6xl bg-gradient-to-r from-[#00ffff] to-[#ff00ff] bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,255,255,0.3)] font-bold"
       >
         CarChaseGame
       </h1>
-      <p id="overlay-subtitle" class="text-2xl mb-4 opacity-80"></p>
-      <input
-        id="username-input"
-        type="text"
-        placeholder="Enter Username"
-        class="mb-8 px-6 py-3 bg-white/10 border border-white/20 rounded-lg text-white text-xl focus:outline-none focus:border-[#00ffff] transition-all text-center placeholder:text-white/30"
-      />
+      <div class="flex flex-col gap-1 items-center">
+        <p id="overlay-subtitle" class="text-2xl opacity-80 text-white">Choose your username</p>
+        <input
+          id="username-input"
+          type="text"
+          placeholder="Enter Username"
+          class="mb-2 px-6 py-3 bg-white/10 border border-white/20 rounded-lg text-white text-xl focus:outline-none focus:border-[#00ffff] transition-all text-center placeholder:text-white/30"
+        />
+      </div>
       <div class="flex gap-4">
         <button
           id="start-btn"
