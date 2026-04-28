@@ -4,7 +4,8 @@ const overlay = document.getElementById("overlay");
 const overlayTitle = document.getElementById("overlay-title");
 const overlaySubtitle = document.getElementById("overlay-subtitle");
 const startBtn = document.getElementById("start-btn");
-const scoreDisplay = document.getElementById("score-display");
+const homeBtn = document.getElementById("home-btn");
+const usernameInput = document.getElementById("username-input");
 const copsDisplay = document.getElementById("cops-display");
 
 // Resize canvas to fill screen
@@ -19,6 +20,20 @@ window.addEventListener("resize", resizeCanvas);
 let gameState = "menu";
 let score = 0;
 let highScore = parseInt(localStorage.getItem("getawayHighScore")) || 0;
+
+// Generate random default username
+function generateRandomUsername() {
+  const adjectives = ["Fast", "Swift", "Brave", "Shiny", "Stealthy", "Fierce", "Radiant", "Mighty", "Cool", "Bold", "Furious", "Neon", "Turbo", "Sleek", "Wild"];
+  const nouns = ["Driver", "Racer", "Falcon", "Tiger", "Wolf", "Phoenix", "Viper", "Ghost", "Nomad", "Rider", "Cobra", "Eagle", "Hawk", "Jaguar", "Drifter"];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  return `${adj}${noun}`;
+}
+
+// Pre-fill username
+if (usernameInput) {
+  usernameInput.value = localStorage.getItem("getawayUsername") || generateRandomUsername();
+}
 let player,
   cops = [],
   particles = [],
@@ -576,6 +591,11 @@ function initGame() {
     spawnPoliceCar();
   }
 
+  // Save username
+  if (usernameInput && usernameInput.value) {
+    localStorage.setItem("getawayUsername", usernameInput.value);
+  }
+
   gameState = "playing";
   overlay.classList.add("hidden");
   updateUI();
@@ -584,8 +604,7 @@ function initGame() {
 // Update UI
 function updateUI() {
   const aliveCops = cops.filter((c) => c.alive).length;
-  scoreDisplay.textContent = `Busted: ${score}`;
-  copsDisplay.textContent = `Cops: ${aliveCops}`;
+  copsDisplay.textContent = `Score: ${score}`;
 }
 
 // Game loop
@@ -658,6 +677,8 @@ function gameLoop() {
 // Show game over screen
 function showGameOver(won) {
   overlay.classList.remove("hidden");
+  if (usernameInput) usernameInput.classList.add("hidden");
+  if (homeBtn) homeBtn.classList.remove("hidden");
 
   // Reset title classes to base and then add specific gradient
   overlayTitle.className = "text-6xl mb-2 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,255,255,0.3)] font-bold bg-gradient-to-r";
@@ -677,6 +698,17 @@ function showGameOver(won) {
 // Start button
 startBtn.addEventListener("click", () => {
   initGame();
+});
+
+// Home button
+homeBtn.addEventListener("click", () => {
+  overlayTitle.textContent = "CarChaseGame";
+  overlayTitle.className = "text-6xl mb-2 bg-gradient-to-r from-[#00ffff] to-[#ff00ff] bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,255,255,0.3)] font-bold";
+  overlaySubtitle.textContent = "";
+  startBtn.textContent = "Start Game";
+  if (usernameInput) usernameInput.classList.remove("hidden");
+  if (homeBtn) homeBtn.classList.add("hidden");
+  gameState = "menu";
 });
 
 // Restart on Enter

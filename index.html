@@ -12,7 +12,6 @@
       id="ui"
       class="fixed top-5 left-5 text-white text-lg drop-shadow-[0_0_10px_rgba(0,255,255,0.5)] pointer-events-none z-10"
     >
-      <div id="score-display" class="mb-2">Busted: 0</div>
       <div id="cops-display" class="mb-2">Cops: 4</div>
       <div id="controls-hint" class="text-sm opacity-70 mt-4">WASD / Arrows to drive | Enter to start</div>
     </div>
@@ -23,14 +22,32 @@
       >
         CarChaseGame
       </h1>
-      <p id="overlay-subtitle" class="text-2xl mb-10 opacity-80"></p>
-      <button
-        id="start-btn"
-        class="px-12 py-4 text-2xl bg-gradient-to-r from-[#00ffff] to-[#0088ff] rounded-full text-black cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(0,255,255,0.4)] hover:shadow-[0_0_30px_rgba(0,255,255,0.6)] font-semibold"
-      >
-        Start Game
-      </button>
+      <p id="overlay-subtitle" class="text-2xl mb-4 opacity-80"></p>
+      <input
+        id="username-input"
+        type="text"
+        placeholder="Enter Username"
+        class="mb-8 px-6 py-3 bg-white/10 border border-white/20 rounded-lg text-white text-xl focus:outline-none focus:border-[#00ffff] transition-all text-center placeholder:text-white/30"
+      />
+      <div class="flex gap-4">
+        <button
+          id="start-btn"
+          class="px-12 py-4 text-2xl bg-gradient-to-r from-[#00ffff] to-[#0088ff] rounded-full text-black cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(0,255,255,0.4)] hover:shadow-[0_0_30px_rgba(0,255,255,0.6)] font-semibold"
+        >
+          Start Game
+        </button>
+        <button
+          id="home-btn"
+          class="hidden px-6 py-4 text-2xl bg-white/10 border border-white/20 rounded-full text-white cursor-pointer transition-all hover:bg-white/20 active:scale-95 font-semibold flex items-center justify-center"
+        >
+          <i data-lucide="home" class="w-8 h-8"></i>
+        </button>
+      </div>
     </div>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+      lucide.createIcons();
+    </script>
     <script src="game.js"></script>
   </body>
 </html>
