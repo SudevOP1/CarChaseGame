@@ -18,20 +18,15 @@ const musicVolumeText = document.getElementById("music-volume-text");
 const soundVolumeText = document.getElementById("sound-volume-text");
 const settingsCloseBtn = document.getElementById("settings-close-btn");
 
-
-
 // Audio setup
 const bgMusic = new Audio("assets/bg_music.mp3");
 bgMusic.loop = true;
 bgMusic.volume = parseFloat(localStorage.getItem("getawayMusicVolume") || 0.1);
 
 const crashSound = new Audio("assets/crash.mp3");
-crashSound.volume = parseFloat(localStorage.getItem("getawaySoundVolume") || 0.1);
-
-
-
-
-
+crashSound.volume = parseFloat(
+  localStorage.getItem("getawaySoundVolume") || 0.1,
+);
 
 // Resize canvas to fill screen
 function resizeCanvas() {
@@ -43,7 +38,7 @@ window.addEventListener("resize", resizeCanvas);
 
 // Global music starter (for browser autoplay policies)
 function startMusic() {
-  bgMusic.play().catch(e => {
+  bgMusic.play().catch((e) => {
     // Fail silently if still blocked
   });
   // Remove listeners once music starts
@@ -63,8 +58,6 @@ window.addEventListener("keydown", startMusic);
 window.addEventListener("mousedown", startMusic);
 window.addEventListener("touchstart", startMusic);
 
-
-
 // Game state
 let gameState = "menu";
 let score = 0;
@@ -72,8 +65,40 @@ let highScore = parseInt(localStorage.getItem("getawayHighScore")) || 0;
 
 // Generate random default username
 function generateRandomUsername() {
-  const adjectives = ["Fast", "Swift", "Brave", "Shiny", "Stealthy", "Fierce", "Radiant", "Mighty", "Cool", "Bold", "Furious", "Neon", "Turbo", "Sleek", "Wild"];
-  const nouns = ["Driver", "Racer", "Falcon", "Tiger", "Wolf", "Phoenix", "Viper", "Ghost", "Nomad", "Rider", "Cobra", "Eagle", "Hawk", "Jaguar", "Drifter"];
+  const adjectives = [
+    "Fast",
+    "Swift",
+    "Brave",
+    "Shiny",
+    "Stealthy",
+    "Fierce",
+    "Radiant",
+    "Mighty",
+    "Cool",
+    "Bold",
+    "Furious",
+    "Neon",
+    "Turbo",
+    "Sleek",
+    "Wild",
+  ];
+  const nouns = [
+    "Driver",
+    "Racer",
+    "Falcon",
+    "Tiger",
+    "Wolf",
+    "Phoenix",
+    "Viper",
+    "Ghost",
+    "Nomad",
+    "Rider",
+    "Cobra",
+    "Eagle",
+    "Hawk",
+    "Jaguar",
+    "Drifter",
+  ];
   const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
   const noun = nouns[Math.floor(Math.random() * nouns.length)];
   return `${adj}${noun}`;
@@ -81,7 +106,8 @@ function generateRandomUsername() {
 
 // Pre-fill username and add listener for audio start
 if (usernameInput) {
-  const savedUsername = localStorage.getItem("getawayUsername") || generateRandomUsername();
+  const savedUsername =
+    localStorage.getItem("getawayUsername") || generateRandomUsername();
   usernameInput.value = savedUsername;
   settingsUsername.value = savedUsername;
 
@@ -111,8 +137,6 @@ if (musicVolumeInput) {
   });
 }
 
-
-
 if (soundVolumeInput) {
   soundVolumeInput.value = crashSound.volume;
   soundVolumeText.textContent = `${Math.round(crashSound.volume * 100)}%`;
@@ -123,8 +147,6 @@ if (soundVolumeInput) {
   });
 }
 
-
-
 settingsBtn.addEventListener("click", () => {
   settingsOverlay.classList.remove("hidden");
   settingsOverlay.classList.add("flex");
@@ -134,7 +156,6 @@ settingsCloseBtn.addEventListener("click", () => {
   settingsOverlay.classList.remove("flex");
   settingsOverlay.classList.add("hidden");
 });
-
 
 let player,
   cops = [],
@@ -155,6 +176,15 @@ window.addEventListener("keyup", (e) => {
   keys[e.code] = false;
 });
 
+// Window resize handling
+window.addEventListener("resize", () => {
+  resizeCanvas();
+  // Update player speed if in game
+  if (gameState === "playing" && player) {
+    player.speed = Math.min(canvas.width, canvas.height) * 0.08;
+  }
+});
+
 // Player Car class
 class PlayerCar {
   constructor(x, y) {
@@ -162,7 +192,7 @@ class PlayerCar {
     this.y = y;
     this.width = 20;
     this.height = 36;
-    this.speed = 5;
+    this.speed = Math.min(canvas.width, canvas.height) * 0.008;
     this.color = "#00ffff";
     this.angle = -Math.PI / 2; // Pointing up by default
     this.velocity = { x: 0, y: 0 };
@@ -222,13 +252,20 @@ class PlayerCar {
     }
 
     // Add skid marks when drifting
-    if (Math.abs(this.driftAngle) > 0.5 && moveSpeed > 3 && Math.random() < 0.4) {
+    if (
+      Math.abs(this.driftAngle) > 0.5 &&
+      moveSpeed > 3 &&
+      Math.random() < 0.4
+    ) {
       skidMarks.push(new SkidMark(this.x, this.y, this.angle));
     }
 
     // Keep in bounds
     this.x = Math.max(this.width, Math.min(canvas.width - this.width, this.x));
-    this.y = Math.max(this.height, Math.min(canvas.height - this.height, this.y));
+    this.y = Math.max(
+      this.height,
+      Math.min(canvas.height - this.height, this.y),
+    );
   }
 
   draw() {
@@ -374,7 +411,12 @@ class PoliceCar {
     }
 
     // Check wall collision
-    if (head.x < 0 || head.x > canvas.width || head.y < 0 || head.y > canvas.height) {
+    if (
+      head.x < 0 ||
+      head.x > canvas.width ||
+      head.y < 0 ||
+      head.y > canvas.height
+    ) {
       this.alive = false;
       if (gameState === "playing") score++;
       createExplosion(head.x, head.y, this.color);
@@ -528,7 +570,9 @@ class Debris {
   draw() {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-    ctx.fillStyle = this.color.replace(")", `, ${this.life})`).replace("rgb", "rgba");
+    ctx.fillStyle = this.color
+      .replace(")", `, ${this.life})`)
+      .replace("rgb", "rgba");
     ctx.fill();
   }
 }
@@ -558,7 +602,9 @@ class Particle {
   draw() {
     ctx.beginPath();
     ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
-    ctx.fillStyle = this.color.replace(")", `, ${this.life})`).replace("rgb", "rgba");
+    ctx.fillStyle = this.color
+      .replace(")", `, ${this.life})`)
+      .replace("rgb", "rgba");
     ctx.fill();
   }
 }
@@ -573,7 +619,6 @@ function createExplosion(x, y, color) {
   }
 }
 
-
 function createDebris(x, y) {
   for (let i = 0; i < 15; i++) {
     particles.push(new Debris(x, y, "rgb(100, 100, 100)"));
@@ -582,7 +627,8 @@ function createDebris(x, y) {
 
 // Spawn a single police car at a random location away from the player
 function spawnPoliceCar() {
-  const baseSpeed = 3 + Math.min(score / 12, 3);
+  const screenRef = Math.min(canvas.width, canvas.height);
+  const baseSpeed = screenRef * 0.008 + Math.min(score / 12, screenRef * 0.008);
   let spawnX, spawnY, dist;
   let attempts = 0;
 
@@ -631,7 +677,9 @@ function checkCopCollisions() {
       if (copB.alive) {
         for (let k = 0; k < copA.segments.length; k++) {
           const seg = copA.segments[k];
-          const dist = Math.sqrt((headB.x - seg.x) ** 2 + (headB.y - seg.y) ** 2);
+          const dist = Math.sqrt(
+            (headB.x - seg.x) ** 2 + (headB.y - seg.y) ** 2,
+          );
           if (dist < 15) {
             copB.alive = false;
             score++;
@@ -709,12 +757,8 @@ function initGame() {
   copsDisplay.classList.remove("hidden");
   updateUI();
 
-
   startMusic();
 }
-
-
-
 
 // Update UI
 function updateUI() {
@@ -768,7 +812,10 @@ function gameLoop() {
 
     // Periodic spawning - interval reduces exponentially with score
     const now = Date.now();
-    const currentInterval = Math.max(minSpawnInterval, initialSpawnInterval * Math.pow(0.75, score));
+    const currentInterval = Math.max(
+      minSpawnInterval,
+      initialSpawnInterval * Math.pow(0.75, score),
+    );
     if (now - lastSpawnTime > currentInterval) {
       spawnPoliceCar();
       lastSpawnTime = now;
@@ -796,7 +843,8 @@ function showGameOver(won) {
   if (homeBtn) homeBtn.classList.remove("hidden");
 
   // Reset title classes to base and then add specific gradient
-  overlayTitle.className = "text-6xl mb-2 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,255,255,0.3)] font-bold bg-gradient-to-r";
+  overlayTitle.className =
+    "text-6xl mb-2 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,255,255,0.3)] font-bold bg-gradient-to-r";
 
   if (won) {
     overlayTitle.textContent = "You Escaped!";
@@ -812,10 +860,6 @@ function showGameOver(won) {
   copsDisplay.classList.add("hidden");
 }
 
-
-
-
-
 // Start button
 startBtn.addEventListener("click", () => {
   initGame();
@@ -824,7 +868,8 @@ startBtn.addEventListener("click", () => {
 // Home button
 homeBtn.addEventListener("click", () => {
   overlayTitle.textContent = "CarChaseGame";
-  overlayTitle.className = "text-6xl mb-2 bg-gradient-to-r from-[#00ffff] to-[#ff00ff] bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,255,255,0.3)] font-bold";
+  overlayTitle.className =
+    "text-6xl mb-2 bg-gradient-to-r from-[#00ffff] to-[#ff00ff] bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,255,255,0.3)] font-bold";
   overlaySubtitle.textContent = "";
   startBtn.textContent = "Start Game";
   if (usernameInput) usernameInput.classList.remove("hidden");
@@ -834,11 +879,12 @@ homeBtn.addEventListener("click", () => {
   copsDisplay.classList.add("hidden");
 });
 
-
-
 // Restart on Enter
 window.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && (gameState === "lost" || gameState === "won" || gameState === "menu")) {
+  if (
+    e.key === "Enter" &&
+    (gameState === "lost" || gameState === "won" || gameState === "menu")
+  ) {
     initGame();
   }
 });
